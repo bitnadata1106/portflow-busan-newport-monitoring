@@ -46,6 +46,8 @@ Azure 환경과 Local/Open-source 환경을 각각 구현하여
 - HMM 등 해운·물류 생태계의 부산 집중 흐름
 - 세관·검역·항만 운영자가 활용할 수 있는 통합 모니터링 수요 존재
 
+![PortFlow Busan New Port](./assets/busan_new_port_image.png)
+
 <br/>
 
 ---
@@ -162,9 +164,10 @@ Azure 기반 구조와 Local/Open-source 기반 구조를 비교했습니다.
 
 ## 🏗️ Architecture
 
-### Azure Architecture
 
 ![Azure Architecture](./assets/architecture_portflow.png)
+
+### Azure Architecture
 
 ```text
 Power Automate
@@ -232,9 +235,6 @@ Gold Layer
 ---
 
 ## 🙋‍♀️My Role
-
-본 레포지토리는 팀 프로젝트 결과물을 개인 포트폴리오 관점에서 정리한 저장소입니다.
-특히 제가 직접 설계하거나 구현한 영역을 중심으로 정리했습니다.
 
 <br/>
 
