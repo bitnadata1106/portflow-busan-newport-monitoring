@@ -168,11 +168,30 @@ Power Automate
 Azure Blob Storage
     ↓
 Azure Databricks
+    ├── Bronze Layer
+    ├── Silver Layer
+    └── Gold Layer
     ↓
 Azure SQL Database
     ↓
 Power BI
 ````
+### Local Architecture
+
+```text
+Power Automate
+    ↓
+Local Folder
+    ↓
+PySpark + Delta Lake
+    ├── Bronze Layer
+    ├── Silver Layer
+    └── Gold Layer
+    ↓
+PostgreSQL
+    ↓
+Streamlit
+```
 
 <br/>
 
