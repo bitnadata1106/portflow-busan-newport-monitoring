@@ -10,6 +10,8 @@
 
 ![PortFlow Dashboard Preview](./assets/dashboard_preview_schedule.png)
 
+![PortFlow Dashboard Preview](./assets/dashboard_preview_schedule2.png)
+
 ![PortFlow Dashboard Preview](./assets/dashboard_preview_container_workload_prediction.png)
 
 <br/>
