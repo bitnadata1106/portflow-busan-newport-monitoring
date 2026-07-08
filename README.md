@@ -1,6 +1,8 @@
 # 🚢 PortFlow
 ## Azure-Based Berth Schedule Integration & Workload Prediction Dashboard for 7 Terminals at Busan New Port
 
+🌐 Language: [English](./README.md) | [한국어](./README.ko.md)
+
 > Built on the real field needs of customs officers at Busan New Port,
 > this Azure-based port operations data pipeline project
 > integrates berth schedules scattered across 7 terminals
