@@ -8,7 +8,9 @@
 
 <br/>
 
-![PortFlow Dashboard Preview](./assets/dashboard_preview.png)
+![PortFlow Dashboard Preview](./assets/dashboard_preview_schedule.png)
+
+![PortFlow Dashboard Preview](./assets/dashboard_preview_container_workload_prediction.png)
 
 <br/>
 
@@ -160,7 +162,7 @@ Azure 기반 구조와 Local/Open-source 기반 구조를 비교했습니다.
 
 ### Azure Architecture
 
-![Azure Architecture](./assets/architecture_azure.png)
+![Azure Architecture](./assets/architecture_portflow.png)
 
 ```text
 Power Automate
