@@ -1,4 +1,3 @@
-````md
 # Databricks MCP Text-to-SQL Demo
 
 > 부산신항 접안 스케줄 모니터링 프로젝트에 Databricks DBSQL MCP Server와 Codex를 연결하여, 자연어 기반 DB 질의 흐름을 실험한 데모입니다.
