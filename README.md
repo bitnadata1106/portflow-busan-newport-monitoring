@@ -1,498 +1,146 @@
 # 🚢 PortFlow
-## Azure-Based Berth Schedule Integration & Workload Prediction Dashboard for 7 Terminals at Busan New Port
+### Azure-Based Busan New Port Schedule Integration & Workload Prediction
 
-🌐 Language: [English](./README.md) | [한국어](./README.ko.md)
+> 부산신항 7개 부두의 분산된 선석 스케줄을 통합하고, 스케줄 변경 이력과 컨테이너 작업량을 조회·예측하는 Azure 기반 데이터 서비스입니다.
 
-> Built on the real field needs of customs officers at Busan New Port,
-> this Azure-based port operations data pipeline project
-> integrates berth schedules scattered across 7 terminals
-> and monitors schedule change history and hourly workload.
-
-<br/>
-
-![PortFlow Dashboard Preview](./assets/dashboard_preview_schedule.png)
-
-![PortFlow Dashboard Preview](./assets/dashboard_preview_schedule2.png)
-
-![PortFlow Dashboard Preview](./assets/dashboard_preview_container_workload_prediction.png)
-
-<br/>
-
-![Go to PortFlow](https://app.powerbi.com/groups/me/reports/d9854a58-94e0-4640-8445-87ac118fa848/9ee5b56305b74460a7e9?experience=power-bi)
+본 저장소는 팀 프로젝트 결과물 중 제가 핵심 담당한 **Azure Blob Storage–Databricks 간 Identity 기반 데이터 접근 구조 설계 및 Unity Catalog 권한 관리**를 중심으로 정리한 개인 기술 포트폴리오입니다.
 
 ---
 
-## ⛴️ Project Overview
+## 1. Project Overview
 
-**PortFlow** is a **smart port operations monitoring service** designed to integrate berthing schedules across 7 terminals at Busan New Port, allowing users to view schedule change history and terminal-level workload on a single screen.
+부산신항 7개 부두의 선석 스케줄은 각 터미널 운영사별로 분산되어 있어, 현장 담당자가 입출항 일정과 변경사항을 확인하려면 여러 시스템을 개별적으로 조회해야 합니다.
 
-This project was carried out as the 2nd project of Microsoft Data School Cohort 4. We implemented both an Azure environment and a Local/Open-source environment, and compared them in terms of cost, security, and operational efficiency.
+본 프로젝트에서는 현직자 인터뷰를 통해 요구사항을 정의하고, 7개 부두의 선석 스케줄과 컨테이너 작업량 데이터를 통합하는 **PortFlow** 서비스를 구축했습니다.
 
-<br/>
+Azure Blob Storage, Azure Databricks, Azure SQL Database, Power BI를 연결하여 데이터 수집·정제·저장·시각화로 이어지는 파이프라인을 구현했습니다.
 
----
+### Project Goals
 
-## 🌊 Why Busan New Port?
-
-Busan New Port is Korea's largest container hub and a leading port undergoing smart port transformation.
-
-The following trends are driving increased demand for maritime and port data-based operational services:
-
-- A large-scale container hub built on 7 terminals at Busan New Port
-- Ongoing push toward AI-based smart port transformation
-- Growing demand for maritime/port data utilization following the relocation of the Ministry of Oceans and Fisheries to Busan
-- Concentration of the shipping and logistics ecosystem (e.g., HMM) in Busan
-- Existing demand for integrated monitoring tools among customs, quarantine, and port operators
-
-![PortFlow Busan New Port](./assets/busan_new_port_image.png)
-
-<br/>
+- 부산신항 7개 부두의 선석 입출항 스케줄 통합
+- 1시간 단위 데이터 자동 갱신
+- 선박별 입출항 예정시각 및 스케줄 변경 이력 조회
+- 부두별 컨테이너 작업량 집계 및 예측
+- Power BI 기반 통합 모니터링 대시보드 구현
 
 ---
 
-## 👮 Field Requirement
+## 2. Architecture
 
-This project was designed based on **interviews with actual customs officers working at Busan New Port**.
+**[전체 Azure 데이터 파이프라인 아키텍처 이미지 삽입]**
 
-When a foreign vessel berths, customs officers board the ship in person to carry out customs inspections. To do this, they need to quickly check each terminal's berthing schedule and any changes to it.
+Azure Blob Storage → Azure Databricks (Bronze / Silver / Gold) → Azure SQL Database → Power BI
 
-However, the existing workflow had the following problems:
+**My Focus: Secure Data Access**
 
-### Pain Points
+**[개인 담당 데이터 접근·인증 구조 이미지 삽입]**
 
-- Schedules are scattered across 7 different terminal operator websites
-- Officers must log into each site every morning and manually download files
-- File formats, column names, and column order differ by terminal, requiring manual consolidation in Excel
-- Berthing and departure times change multiple times a day, making it hard to track changes immediately
-- No single screen exists to view terminal workload and cargo volume forecasts together
+Managed Identity → Storage Credential → External Location → Unity Catalog Permissions
 
-<br/>
+전체 데이터 파이프라인 중 **Azure Blob Storage와 Databricks 사이의 인증 및 데이터 접근 경로**를 담당했습니다.
 
-### Project Pivot
-
-The initial idea was a data quality guardrail pipeline for port data.
-
-However, through officer interviews, we found that the field's top priority wasn't a data quality report itself, but rather **"viewing all 7 terminal schedules on one screen and quickly catching changes."**
-
-Based on this insight, we shifted the project's direction from a **data quality inspection focus** to **PortFlow, a service centered on schedule integration, change detection, and workload prediction dashboards**.
-
-<br/>
+Storage Key나 SAS Token을 코드에서 직접 사용하지 않고, Managed Identity와 Unity Catalog를 통해 자격증명과 데이터 접근권한을 분리했습니다.
 
 ---
 
-## 📌 Key Features
+## 3. My Role
 
-### 1️⃣ Integration of Schedules Across 7 Terminals at Busan New Port
-
-We integrated berth schedules scattered across each terminal operator's website, so customs and quarantine officers can check upcoming vessel arrivals on a single screen.
-
-<br/>
-
-### 2️⃣ Schedule Change Detection
-
-We used `business_key`, `row_hash`, `snapshot_id`, and `parsed_at` to detect schedule changes.
-
-Detected change types include:
-
-- ETA changes
-- ETD changes
-- Closing time changes
-- Terminal changes
-- Workload changes
-- New schedule additions
-- Deleted or "needs confirmation" schedule status
-
-<br/>
-
-### 3️⃣ Operating-Day Design Based on Nighttime Port Operations
-
-Since port operations often continue past midnight, we designed an `eta_work_date` field based on a 6 AM cutoff instead of a simple calendar date.
-
-This allows a schedule at 11:30 PM that gets changed to 12:30 AM the next day to still be tracked as the same operating schedule, rather than being treated as a new one.
-
-<br/>
-
-### 4️⃣ Gold Layer Service Tables
-
-We built purpose-specific service tables in the Databricks Gold Layer so they could be used directly by Power BI and the ML model.
-
-- `gold_integrated_schedule`
-- `gold_schedule_change_history`
-- `gold_today_terminal_schedule`
-- `gold_hourly_terminal_workload`
-- `gold_monthly_container`
-- `gold_ml_feature_table`
-
-<br/>
-
-### 5️⃣ Power BI Monitoring Dashboard
-
-Using Gold/Mart data loaded into Azure SQL DB, we visualized terminal schedules, change history, urgent alerts, hourly workload, and cargo volume forecast results.
-
-<br/>
-
-### 6️⃣ Azure vs. Local Operations Comparison
-
-Using the same service logic, we compared an Azure-based architecture against a Local/Open-source architecture.
-
-Comparison criteria included:
-
-- Build time
-- Service cost
-- Security
-- Operational efficiency
-- Ease of failure tracing and recovery
-- Dashboard sharing methods
-
-<br/>
+| 영역 | 기여 형태 | 담당 내용 |
+|---|---|---|
+| Service Planning | 공동 기획 | 현직자 인터뷰 추진 및 요구사항 정의 참여 |
+| Data Architecture | 공동 설계 | Azure 기반 End-to-End 데이터 아키텍처 검토 |
+| Storage Authentication | **개인 핵심 담당** | Managed Identity 기반 Storage Credential 구성 |
+| Data Access Management | **개인 핵심 담당** | External Location 구성 및 Blob Storage 접근 경로 연결 |
+| Unity Catalog Permissions | **개인 핵심 담당** | READ FILES 권한 설정 및 데이터 접근 검증 |
 
 ---
 
-## 🏗️ Architecture
+## 4. Secure Data Access Architecture ⭐
 
+> **Primary Owner — Managed Identity · Storage Credential · External Location · Unity Catalog**
 
-![Azure Architecture](./assets/architecture_portflow.png)
+### 4.1 Problem — 코드에 포함된 Storage 인증정보
 
-### Azure Architecture
+초기에는 팀원들이 Azure Blob Storage에 접근하기 위해 Storage Key 또는 SAS Token을 Databricks Notebook 코드에 직접 입력하고 있었습니다.
 
-```text
-Power Automate
-    ↓
-Azure Blob Storage
-    ↓
-Azure Databricks
-    ├── Bronze Layer
-    ├── Silver Layer
-    └── Gold Layer
-    ↓
-Azure SQL Database
-    ↓
-Power BI
-````
-### Local Architecture
+이 방식은 Notebook 공유나 소스코드 관리 과정에서 인증정보가 노출될 위험이 있으며, 사용자별 데이터 접근권한을 관리하기 어렵다는 한계가 있었습니다.
 
-```text
-Power Automate
-    ↓
-Local Folder
-    ↓
-PySpark + Delta Lake
-    ├── Bronze Layer
-    ├── Silver Layer
-    └── Gold Layer
-    ↓
-PostgreSQL
-    ↓
-Streamlit
-```
+이에 인증정보와 데이터 처리 코드를 분리하고, 사용자가 필요한 데이터에만 접근하도록 구조를 개선했습니다.
 
-<br/>
+### 4.2 Solution — Identity 기반 접근 구조 구축
 
-### Medallion Architecture
+**1. Managed Identity 기반 인증**
 
-```text
-Raw Data
-  ↓
-Bronze Layer
-  - Preserve raw data
-  - Add ingestion metadata
-  - Manage tracking columns such as snapshot_id, row_hash
+- Azure Managed Identity를 활용한 Storage 인증 방식 구성
+- Azure RBAC를 통해 Storage 접근권한 설정
+- 사용자 코드에서 Storage Key·SAS Token 제거
 
-  ↓
-Silver Layer
-  - Standardize columns across terminals
-  - Clean data types
-  - Generate eta_work_date
-  - Generate business_key
-  - Separate and preserve rows that fail validation
+**2. Storage Credential 및 External Location 구성**
 
-  ↓
-Gold Layer
-  - Integrated schedule table
-  - Change history table
-  - Today's schedule table
-  - Hourly workload table
-  - ML feature table
-  - Mart view for Power BI integration
-```
+- Databricks Unity Catalog에서 Storage Credential 생성
+- External Location을 통해 Blob Storage 경로 연결
+- 데이터 접근 시 인증정보를 코드에 직접 입력하지 않는 구조 구현
 
-<br/>
+**3. Unity Catalog 기반 권한 관리**
+
+- 팀원에게 원본 파일 조회에 필요한 `READ FILES` 권한 부여
+- 원본 데이터 보존을 고려해 읽기 중심의 접근권한 구성
+- 권한이 없는 사용자와 권한이 부여된 사용자의 접근 동작 검증
+
+### 4.3 Result — 인증정보 분리 및 최소권한 검증
+
+- **Credential Isolation:** Storage Key·SAS Token을 사용자 코드에서 제거
+- **Access Validation:** Databricks에서 7개 부두 원본 파일 정상 조회 확인
+- **Permission Validation:** 권한 없는 사용자 접근 차단 및 권한 부여 후 정상 조회 검증
+
+이를 통해 인증정보를 코드에 직접 노출하지 않으면서도 팀원들이 공통 데이터에 접근할 수 있는 환경을 구축했습니다.
+
+**[검증 증거 이미지 또는 Notebook 링크 삽입]**
 
 ---
 
-## 🙋‍♀️ My Role
+## 5. Service Planning & Requirements
 
-<br/>
+> **Collaborative Contribution — Field Requirements**
 
-### Owned
+부산신항 현직자 인터뷰를 추진해 기존 업무에서 발생하는 데이터 조회 문제와 서비스 요구사항을 확인했습니다.
 
-* Implemented the Azure Databricks Gold Layer
-* Designed and implemented Gold service tables in SQL
-* Reviewed the integration architecture from Azure Blob Storage → Databricks → Azure SQL DB
-* Practiced Databricks Unity Catalog permission configuration
-* Managed Storage Credential / External Location permissions
-* Compared Azure SQL DB authentication methods
+현장에서는 부두별로 분산된 스케줄을 개별 조회해야 했으며, 변경된 입출항 일정을 한눈에 파악하기 어렵다는 문제가 있었습니다.
 
-  * Microsoft Entra ID
-  * SQL Authentication
-* Implemented part of the Power BI monitoring dashboard's DAX measures
-* Defined schedule change alerts and operational metrics
+이를 바탕으로 다음 요구사항을 정의하고 팀의 서비스 기획에 반영했습니다.
 
-<br/>
+- 7개 부두 선석 스케줄의 통합 조회
+- 1시간 단위 데이터 갱신
+- 선박별 입출항 일정 및 변경사항 확인
 
-### Designed
-
-* Wrote the Bronze / Silver / Gold Medallion Architecture design document
-* Designed the `business_key` used for schedule change detection
-* Designed `eta_work_date`, accounting for nighttime port operations
-* Designed the Gold Table → Mart View → Power BI structure
-* Designed the Azure SQL DB permission separation strategy
-
-<br/>
-
-### Collaborated
-
-* Raw data collection automation
-* Bronze Layer implementation
-* Silver Layer implementation
-* ML-based cargo volume forecasting
-* Local/Open-source pipeline implementation
-* Streamlit dashboard implementation
-
-<br/>
+이후 팀원들과 요구사항을 공유하고 PortFlow 대시보드 기획에 참여했습니다.
 
 ---
 
-## 💻 Tech Stack
+## 6. Results & Validation
 
-### Cloud & Data Platform
+| 검증 항목 | 결과 |
+|---|---|
+| Storage 인증 | Managed Identity 기반 접근 구성 |
+| 인증정보 관리 | Notebook 코드 내 Key·SAS Token 제거 |
+| 데이터 접근 | 7개 부두 원본 파일 정상 조회 |
+| 권한 통제 | 미인가 사용자 접근 차단 확인 |
+| 사용자 권한 | READ FILES 부여 후 정상 조회 확인 |
 
-* Azure Blob Storage
-* Azure Databricks
-* Azure SQL Database
-* Microsoft Entra ID
-* Unity Catalog
-* Azure Storage Credential
-* External Location
-  
-![Azure](https://img.shields.io/badge/Azure-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
-![Azure Databricks](https://img.shields.io/badge/Azure%20Databricks-FF3621?style=for-the-badge&logo=databricks&logoColor=white)
-![Azure Blob Storage](https://img.shields.io/badge/Azure%20Blob%20Storage-0078D4?style=for-the-badge&logo=microsoftazure&logoColor=white)
-![Azure SQL Database](https://img.shields.io/badge/Azure%20SQL%20Database-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
-![Microsoft Entra ID](https://img.shields.io/badge/Microsoft%20Entra%20ID-0078D4?style=for-the-badge&logo=microsoft&logoColor=white)
+**Key Takeaway**
 
-
-<br/>
-
-### Data Engineering
-
-* PySpark
-* Spark SQL
-* Delta Lake
-* Medallion Architecture
-* Parquet
-* SQL View / Mart Table
-  
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![PySpark](https://img.shields.io/badge/PySpark-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)
-![Spark SQL](https://img.shields.io/badge/Spark%20SQL-E25A1C?style=for-the-badge&logo=apachespark&logoColor=white)
-![Delta Lake](https://img.shields.io/badge/Delta%20Lake-00AEEF?style=for-the-badge&logo=delta&logoColor=white)
-![Parquet](https://img.shields.io/badge/Parquet-50ABF1?style=for-the-badge&logo=apache&logoColor=white)
-
-<br/>
-
-### BI & Visualization
-
-* Power BI
-* DAX
-* Dashboard KPI Design
-* Schedule Monitoring Dashboard
-
-![Power BI](https://img.shields.io/badge/Power%20BI-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)
-![DAX](https://img.shields.io/badge/DAX-F2C811?style=for-the-badge&logo=powerbi&logoColor=black)
-![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)
-
-<br/>
-
-### Collaboration
-
-* GitHub
-* Notion
-* Microsoft Teams
-
-![GitHub](https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white)
-![Notion](https://img.shields.io/badge/Notion-000000?style=for-the-badge&logo=notion&logoColor=white)
-![Microsoft Teams](https://img.shields.io/badge/Microsoft%20Teams-6264A7?style=for-the-badge&logo=microsoftteams&logoColor=white)
-
-<br/>
+단순히 데이터가 정상적으로 처리되는 것뿐 아니라, **데이터 접근 과정에서 발생할 수 있는 인증정보 노출과 권한 관리 위험을 고려하여 접근 구조를 설계하고 검증한 경험**입니다.
 
 ---
 
-## 📂 Repository Structure
+## 7. Repository Structure
 
-```text
-portflow-busan-newport-monitoring/
-│
-├── README.md
-│
-├── docs/
-│   ├── 01_business_context.md
-│   ├── 02_requirements_from_field_interview.md
-│   ├── 03_architecture_azure_vs_local.md
-│   ├── 04_medallion_design.md
-│   ├── 05_security_and_permission_design.md
-│   ├── 06_powerbi_dashboard_design.md
-│   ├── 07_troubleshooting.md
-│   └── 08_future_improvements.md
-│
-├── notebooks/
-│   ├── 01_raw_to_temp_parquet_header_standardization.sql
-│   ├── 03_silver_to_gold.sql
-│   └── exported_html/
-│       └── 03_silver_to_gold.html
-│
-├── sql/
-│   ├── databricks/
-│   │   ├── create_gold_tables.sql
-│   │   ├── grant_external_location_permissions.sql
-│   │   └── unity_catalog_permissions.sql
-│   │
-│   └── azure_sql_db/
-│       ├── create_schemas.sql
-│       ├── create_mart_views.sql
-│       ├── create_users_roles_future_plan.sql
-│       └── table_type_mapping.md
-│
-├── powerbi/
-│   ├── dax/
-│   │   ├── schedule_alert_measures.dax
-│   │   ├── last_refresh_measures.dax
-│   │   └── workload_measures.dax
-│   ├── screenshots/
-│   │   ├── dashboard_schedule_board.png
-│   │   ├── dashboard_change_history.png
-│   │   └── dashboard_forecast.png
-│   └── README.md
-│
-├── data_samples/
-│   ├── sample_gold_today_terminal_schedule.csv
-│   ├── sample_gold_schedule_change_history.csv
-│   └── README.md
-│
-└── assets/
-    ├── architecture_azure.png
-    ├── medallion_architecture.png
-    ├── dashboard_preview.png
-    └── presentation/
-        └── portflow_presentation.pdf
-```
+**[개인 GitHub Repository 구조 삽입 예정]**
 
-<br/>
+본 저장소는 개인 담당 작업과 검증 자료를 중심으로 구성하며, 팀 전체 서비스 구현 및 상세 기능은 팀 공통 README에서 확인할 수 있습니다.
+
+**Team Project README:** [링크 삽입]
 
 ---
 
-## 🛡️ Security & Permission Design
-
-Beyond simply implementing the data pipeline, this project also reviewed data access permissions and authentication methods in the Azure environment.
-
-<br/>
-
-### Implemented in MVP
-
-* Connected an Azure Blob Storage container as a Databricks External Location
-* Created a Storage Credential and configured External Location permissions
-* Verified Catalog / Schema / Table access permissions via Databricks Unity Catalog
-* Tested both Microsoft Entra ID and SQL Authentication methods for Azure SQL DB connections
-* Reviewed approaches to managing connection credentials via secrets
-* Identified the need to separate read permissions from administrative permissions
-
-<br/>
-
-### Future Security Improvements
-
-In a future production environment, we plan to further organize permissions as follows:
-
-* Permission separation based on Microsoft Entra ID groups
-
-  * Data Engineer Group
-  * BI Developer Group
-  * Viewer Group
-* Role-Based Access Control within Azure SQL DB
-
-  * Read-only role
-  * Load-only role
-  * Mart View management role
-* Separate access permissions for Gold Tables and Mart Views
-* Separate production and development accounts
-* Manage connection strings via Secret Scope
-* Strengthen audit logging and access history monitoring
-
-<br/>
-
----
-
-## 📊 Power BI Dashboard
-
-The Power BI dashboard connects to Gold/Mart data in Azure SQL DB using Import mode.
-
-<br/>
-
-### Dashboard Pages
-
-1. Busan New Port integrated berth schedule board
-2. Schedule change history and priority alerts
-3. Terminal-level workload and cargo volume forecast
-
-<br/>
-
-### Implemented DAX
-
-* Urgent schedule change count
-* Filtering for vessels berthing within 2 hours of the current time
-* Last data refresh timestamp display
-* Aggregated expected workload by terminal
-* Count of changes by change type
-* Terminal filtering and date slicer integration
-
-<br/>
-
----
-
-## 📋 Result
-
-PortFlow was implemented as an MVP based on the real workflow of field officers, delivering the following capabilities:
-
-* Integrated schedule lookup across 7 terminals
-* Hourly schedule refresh structure
-* Detection of ETA / ETD / Closing / terminal changes
-* Change history and priority alerts
-* Terminal-level, time-of-day workload visualization
-* Integrated cargo volume forecast results
-* Comparative analysis of Azure vs. Local operations
-
-<br/>
-
----
-
-## 👏 Future Improvements
-
-* Upgrade collection automation via a paid Power Automate plan or Python-based web scraping
-* Build a scheduled execution structure using Databricks Job Triggers
-* Establish a permission structure based on Microsoft Entra ID
-* Apply role-based access control within Azure SQL DB
-* Improve the BI access structure to be centered around Mart Views
-* Automate ML model retraining and manage model versions with MLflow
-* Further evaluate serverless computing scenarios
-* Integrate change alerts with Teams, Email, and internal company portals
-
-<br/>
-
----
-
-## 📝 Note
-
-This repository presents the results of a team project, organized from an individual portfolio perspective.
-
-It focuses on the areas I personally designed and implemented: Azure permission/authentication configuration, Databricks Gold Layer implementation, SQL/Mart design, and Power BI DAX and dashboard implementation.
-
-Raw data collection automation, Bronze/Silver implementation, ML modeling, and the Local pipeline were collaborative work shared among team members.
+*Microsoft Data School 4기 · 2차 팀 프로젝트 · 2026.06–07*
