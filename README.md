@@ -116,12 +116,16 @@ Storage Key나 SAS Token을 코드에서 직접 사용하지 않고, Managed Ide
 
 - **Credential Isolation:** Storage Key·SAS Token을 사용자 코드에서 제거
 - **Access Validation:** Databricks에서 7개 부두 원본 파일 정상 조회 확인
-- **Permission Validation:** 권한 없는 사용자 접근 차단 및 권한 부여 후 정상 조회 검증
+- **Least Privilege**: 사용자 역할별 읽기·쓰기 권한 분리 및 미인가 사용자 접근 차단 검증
 
 이를 통해 인증정보를 코드에 직접 노출하지 않으면서도 팀원들이 공통 데이터에 접근할 수 있는 환경을 구축했습니다.
 
-**[Notebook 링크 삽입]**
-
+```sql
+-- 원본 데이터 조회 담당자에게 읽기 권한만 부여
+GRANT READ FILES
+ON EXTERNAL LOCATION `<external_location_name>`
+TO `<read_only_user_or_group>`;
+```
 
 <br/>
 
